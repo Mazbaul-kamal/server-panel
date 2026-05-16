@@ -118,6 +118,10 @@ copy_application() {
       --exclude='.git' \
       --exclude='node_modules' \
       --exclude='vendor' \
+      --exclude='storage/app/*' \
+      --exclude='storage/framework/*' \
+      --exclude='storage/logs/*' \
+      --exclude='bootstrap/cache/*.php' \
       "$SOURCE_DIR"/ "$INSTALL_DIR"/
   fi
 }
@@ -403,6 +407,15 @@ run_laravel_setup() {
 
 fix_permissions() {
   log "Fixing permissions"
+  mkdir -p \
+    "$INSTALL_DIR/storage/app/public" \
+    "$INSTALL_DIR/storage/framework/cache/data" \
+    "$INSTALL_DIR/storage/framework/sessions" \
+    "$INSTALL_DIR/storage/framework/testing" \
+    "$INSTALL_DIR/storage/framework/views" \
+    "$INSTALL_DIR/storage/logs" \
+    "$INSTALL_DIR/bootstrap/cache"
+
   chown -R root:www-data "$INSTALL_DIR"
   find "$INSTALL_DIR" -type d -exec chmod 0755 {} +
   find "$INSTALL_DIR" -type f -exec chmod 0644 {} +

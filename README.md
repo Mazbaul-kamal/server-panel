@@ -47,16 +47,28 @@ php artisan panel:admin admin@example.com --password='change-this-password'
 
 ## One-Command Server Install
 
-Run this from the project directory on a fresh Ubuntu/Debian server:
+Fresh Ubuntu/Debian server install directly from GitHub:
 
 ```bash
-sudo bash deploy/install.sh --domain panel.example.com --admin-email admin@example.com
+(curl -fsSL https://raw.githubusercontent.com/Mazbaul-kamal/server-panel/master/install.sh || wget -qO- https://raw.githubusercontent.com/Mazbaul-kamal/server-panel/master/install.sh) | sudo bash -s -- --domain panel.example.com --admin-email admin@example.com
 ```
 
 With Let's Encrypt SSL, make sure the domain already points to the server, then run:
 
 ```bash
-sudo bash deploy/install.sh --domain panel.example.com --admin-email admin@example.com --ssl --email admin@example.com
+(curl -fsSL https://raw.githubusercontent.com/Mazbaul-kamal/server-panel/master/install.sh || wget -qO- https://raw.githubusercontent.com/Mazbaul-kamal/server-panel/master/install.sh) | sudo bash -s -- --domain panel.example.com --admin-email admin@example.com --ssl --email admin@example.com
+```
+
+If you prefer the CyberPanel-style process substitution form:
+
+```bash
+sudo bash -c 'bash <(curl -fsSL https://raw.githubusercontent.com/Mazbaul-kamal/server-panel/master/install.sh || wget -qO- https://raw.githubusercontent.com/Mazbaul-kamal/server-panel/master/install.sh) --domain panel.example.com --admin-email admin@example.com'
+```
+
+Update an existing install:
+
+```bash
+(curl -fsSL https://raw.githubusercontent.com/Mazbaul-kamal/server-panel/master/preUpgrade.sh || wget -qO- https://raw.githubusercontent.com/Mazbaul-kamal/server-panel/master/preUpgrade.sh) | sudo bash
 ```
 
 The installer will:
