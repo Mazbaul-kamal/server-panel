@@ -176,3 +176,86 @@
 .enterprise-command-center__incident--danger {
     border-color: rgba(251, 113, 133, 0.34);
 }
+
+.getting-started {
+    display: grid;
+    gap: 1rem;
+    border: 1px solid rgba(34, 211, 238, 0.18);
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(18, 21, 23, 0.98), rgba(13, 15, 16, 0.98));
+    padding: 1rem;
+}
+
+.getting-started__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.getting-started__eyebrow {
+    color: var(--server-panel-cyan);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.getting-started__title {
+    color: #fafafa;
+    font-size: 1.15rem;
+    font-weight: 750;
+}
+
+.getting-started__catalog,
+.getting-started__step em {
+    border: 1px solid rgba(34, 211, 238, 0.25);
+    border-radius: 8px;
+    color: #cffafe;
+    font-size: 0.78rem;
+    font-style: normal;
+    font-weight: 700;
+    padding: 0.45rem 0.7rem;
+}
+
+.getting-started__steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0.75rem;
+}
+
+.getting-started__step {
+    display: grid;
+    min-height: 10rem;
+    align-content: space-between;
+    gap: 0.5rem;
+    border: 1px solid var(--server-panel-line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+    padding: 0.9rem;
+    transition: border-color 160ms ease, background 160ms ease;
+}
+
+.getting-started__step:hover {
+    border-color: rgba(34, 211, 238, 0.34);
+    background: rgba(34, 211, 238, 0.08);
+}
+
+.getting-started__step span {
+    color: var(--server-panel-muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.getting-started__step strong {
+    color: #f4f4f5;
+    font-size: 1rem;
+    font-weight: 750;
+}
+
+.getting-started__step small {
+    color: var(--server-panel-muted);
+    font-size: 0.82rem;
+}
+
+.getting-started__step em {
+    justify-self: start;
+}

@@ -36,6 +36,12 @@ class ServerSiteResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedGlobeAlt;
 
+    protected static ?string $navigationLabel = 'Websites';
+
+    protected static ?string $modelLabel = 'website';
+
+    protected static ?string $pluralModelLabel = 'websites';
+
     protected static string|\UnitEnum|null $navigationGroup = 'Web Hosting';
 
     protected static ?int $navigationSort = 10;
@@ -48,21 +54,27 @@ class ServerSiteResource extends Resource
                     ->columns(2)
                     ->schema([
                         TextInput::make('name')
+                            ->label('Site name')
                             ->required()
                             ->regex('/^[a-z0-9][a-z0-9.-]{0,252}$/')
-                            ->helperText('Used as the Nginx config filename.'),
+                            ->placeholder('example.com'),
                         TextInput::make('domain')
+                            ->label('Domain')
                             ->required()
+                            ->placeholder('example.com')
                             ->regex('/^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/'),
-                        TagsInput::make('aliases')->placeholder('www.example.com'),
+                        TagsInput::make('aliases')->label('Aliases')->placeholder('www.example.com'),
                         TextInput::make('document_root')
+                            ->label('Website folder')
                             ->required()
                             ->default(fn (): string => rtrim((string) config('server-panel.managed_root'), '/').'/example.com')
                             ->columnSpanFull(),
                         TextInput::make('system_user')
+                            ->label('Linux user')
                             ->default('www-data')
                             ->regex('/^[a-z_][a-z0-9_-]{0,31}$/'),
                         TextInput::make('php_fpm_socket')
+                            ->label('PHP-FPM socket')
                             ->default(fn (): string => (string) config('server-panel.nginx.php_fpm_socket')),
                         Toggle::make('ssl_enabled')->label('SSL enabled'),
                     ]),
@@ -121,6 +133,9 @@ class ServerSiteResource extends Resource
                 TextColumn::make('last_git_deployed_at')->dateTime()->sortable()->toggleable(),
                 TextColumn::make('last_file_uploaded_at')->dateTime()->sortable()->toggleable(),
             ])
+            ->emptyStateIcon(Heroicon::OutlinedGlobeAlt)
+            ->emptyStateHeading('No websites yet')
+            ->emptyStateDescription('Create a website, deploy it, then upload ZIP files or connect Git.')
             ->filters([
                 SelectFilter::make('status')->options([
                     'draft' => 'Draft',
@@ -130,6 +145,7 @@ class ServerSiteResource extends Resource
             ])
             ->recordActions([
                 Action::make('deploy')
+                    ->label('Deploy site')
                     ->icon(Heroicon::OutlinedRocketLaunch)
                     ->requiresConfirmation()
                     ->action(function (ServerSite $record): void {

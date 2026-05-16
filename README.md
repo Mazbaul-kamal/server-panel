@@ -6,6 +6,7 @@ Laravel 12 self-hosted server management panel for the same Linux server it mana
 
 - Filament dark-mode admin panel at `/admin`
 - Enterprise dashboard with command-center health cards, throughput chart, service health, recent tasks, and module lifecycle widgets
+- Start-here dashboard workflow for creating websites, uploading files, connecting Git, and checking task logs
 - Horizon `system` queue for privileged/long-running tasks
 - Reverb broadcasting plus SSE task console streaming
 - Whitelisted `sudo -n` process execution through `ServerAction`

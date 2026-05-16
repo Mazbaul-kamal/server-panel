@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Widgets\EnterpriseCommandCenter;
+use App\Filament\Widgets\GettingStartedWidget;
 use App\Filament\Widgets\ModuleLifecycleWidget;
 use App\Filament\Widgets\RecentTasksWidget;
 use App\Filament\Widgets\ServiceHealthWidget;
@@ -35,7 +36,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->brandName('Server Panel Enterprise')
+            ->brandName('Server Panel')
             ->darkMode(isForced: true)
             ->spa()
             ->sidebarCollapsibleOnDesktop()
@@ -63,6 +64,7 @@ class AdminPanelProvider extends PanelProvider
                 Dashboard::class,
             ])
             ->widgets([
+                GettingStartedWidget::class,
                 EnterpriseCommandCenter::class,
                 SystemStatsOverview::class,
                 TaskThroughputChart::class,

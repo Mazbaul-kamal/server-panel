@@ -14,6 +14,7 @@ class ManageServerSites extends ManageRecords
     {
         return [
             CreateAction::make()
+                ->label('Create website')
                 ->mutateDataUsing(function (array $data): array {
                     $data['user_id'] = auth()->id();
 
