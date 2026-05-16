@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+backup_root="/var/backups/server-panel/sites"
+timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+
+/usr/bin/install -d -o root -g root -m 0750 "$backup_root"
+/usr/bin/tar -C /var/www -czf "$backup_root/sites-$timestamp.tar.gz" vhosts
+/usr/bin/find "$backup_root" -type f -name 'sites-*.tar.gz' -mtime +14 -delete
+
+echo "Created $backup_root/sites-$timestamp.tar.gz"

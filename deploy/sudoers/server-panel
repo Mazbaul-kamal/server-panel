@@ -1,0 +1,11 @@
+Defaults:www-data env_reset
+Defaults:www-data secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+www-data ALL=(root) NOPASSWD: /usr/local/sbin/panel-nginx-site
+www-data ALL=(root) NOPASSWD: /usr/sbin/useradd
+www-data ALL=(root) NOPASSWD: /usr/bin/mkdir
+www-data ALL=(root) NOPASSWD: /usr/bin/chown
+www-data ALL=(root) NOPASSWD: /usr/bin/apt-get update
+www-data ALL=(root) NOPASSWD: /usr/bin/certbot renew --quiet
+www-data ALL=(root) NOPASSWD: /usr/local/sbin/panel-backup-sites
+www-data ALL=(root) NOPASSWD: /usr/sbin/logrotate /etc/logrotate.conf

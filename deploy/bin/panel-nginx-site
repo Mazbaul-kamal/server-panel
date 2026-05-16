@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+action="${1:?missing action}"
+name="${2:-}"
+
+require_name() {
+  [[ "$name" =~ ^[a-z0-9][a-z0-9.-]{0,252}$ ]] || exit 64
+}
+
+case "$action" in
+  write)
+    require_name
+    tmp="$(mktemp)"
+    cat > "$tmp"
+    /usr/bin/install -o root -g root -m 0644 "$tmp" "/etc/nginx/sites-available/$name"
+    rm -f "$tmp"
+    ;;
+  enable)
+    require_name
+    /usr/bin/ln -sfn "/etc/nginx/sites-available/$name" "/etc/nginx/sites-enabled/$name"
+    ;;
+  disable)
+    require_name
+    /usr/bin/rm -f "/etc/nginx/sites-enabled/$name"
+    ;;
+  test)
+    /usr/sbin/nginx -t
+    ;;
+  reload)
+    /usr/sbin/nginx -s reload
+    ;;
+  *)
+    exit 64
+    ;;
+esac

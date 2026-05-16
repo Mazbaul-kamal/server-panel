@@ -1,0 +1,106 @@
+# Server Panel
+
+Laravel 12 self-hosted server management panel for the same Linux server it manages.
+
+## What Is Included
+
+- Filament dark-mode admin panel at `/admin`
+- Horizon `system` queue for privileged/long-running tasks
+- Reverb broadcasting plus SSE task console streaming
+- Whitelisted `sudo -n` process execution through `ServerAction`
+- Nginx virtual host deployment through a root-owned helper script
+- MariaDB/MySQL database and user provisioning
+- Deployment examples for sudoers, Supervisor, Nginx Reverb proxying, and backup helper scripts
+
+## Local Setup
+
+```bash
+composer install
+npm install
+npm run build
+cp .env.example .env
+php artisan key:generate
+```
+
+Configure `.env` with the application database, Redis, and the privileged server database connection:
+
+```env
+DB_CONNECTION=mysql
+DB_DATABASE=server_panel
+DB_USERNAME=server_panel
+DB_PASSWORD=...
+
+QUEUE_CONNECTION=redis
+REDIS_CLIENT=predis
+
+SERVER_DB_DATABASE=mysql
+SERVER_DB_USERNAME=root
+SERVER_DB_PASSWORD=...
+```
+
+Then run:
+
+```bash
+php artisan migrate
+php artisan panel:admin admin@example.com --password='change-this-password'
+```
+
+## One-Command Server Install
+
+Run this from the project directory on a fresh Ubuntu/Debian server:
+
+```bash
+sudo bash deploy/install.sh --domain panel.example.com --admin-email admin@example.com
+```
+
+With Let's Encrypt SSL, make sure the domain already points to the server, then run:
+
+```bash
+sudo bash deploy/install.sh --domain panel.example.com --admin-email admin@example.com --ssl --email admin@example.com
+```
+
+The installer will:
+
+- install Nginx, MariaDB, Redis, Supervisor, PHP-FPM, Composer dependencies, and frontend assets;
+- create the application database/user and a database bridge user for provisioning site databases;
+- write `.env`, run migrations, create the Filament admin user, and cache Laravel config;
+- install `/usr/local/sbin/panel-nginx-site`, `/usr/local/sbin/panel-backup-sites`, and `/etc/sudoers.d/server-panel`;
+- configure Nginx for the panel and Reverb WebSockets;
+- configure Supervisor for Horizon and Reverb.
+
+At the end, it prints the panel URL, admin password, and generated database passwords. Save that output.
+
+## Server Install Notes
+
+Install privileged helpers:
+
+```bash
+sudo install -o root -g root -m 0750 deploy/bin/panel-nginx-site /usr/local/sbin/panel-nginx-site
+sudo install -o root -g root -m 0750 deploy/bin/panel-backup-sites /usr/local/sbin/panel-backup-sites
+sudo install -o root -g root -m 0440 deploy/sudoers/server-panel /etc/sudoers.d/server-panel
+sudo visudo -cf /etc/sudoers.d/server-panel
+```
+
+Install daemons:
+
+```bash
+sudo install -o root -g root -m 0644 deploy/supervisor/server-panel-horizon.conf /etc/supervisor/conf.d/server-panel-horizon.conf
+sudo install -o root -g root -m 0644 deploy/supervisor/server-panel-reverb.conf /etc/supervisor/conf.d/server-panel-reverb.conf
+sudo supervisorctl reread
+sudo supervisorctl update
+```
+
+## Verification
+
+```bash
+php artisan test
+./vendor/bin/pint --test
+npm run build
+php artisan route:list --except-vendor
+```
+
+## Security Model
+
+Controllers and Filament actions never accept raw shell commands. They create `Task` records and dispatch queued jobs. Jobs call `ServerAction`, which uses array-based commands and a `CommandWhitelist` that rejects unapproved actions or argument shapes before `sudo` is invoked.
+
+The sudoers file intentionally grants only specific binaries and exact argument forms where possible. Nginx writes and symlink operations go through `/usr/local/sbin/panel-nginx-site`; this avoids giving `www-data` generic access to shell, `tee`, or arbitrary filesystem commands.
