@@ -105,6 +105,35 @@ sudo supervisorctl reread
 sudo supervisorctl update
 ```
 
+## Website Workflow
+
+Create a website from `Admin -> Server Sites -> New site`. The panel creates the Nginx virtual host and document root when you run the row action `Deploy`.
+
+The public web root is:
+
+```text
+/var/www/vhosts/example.com/public
+```
+
+Use the row action `Upload ZIP` to upload static/PHP files into that `public` folder. The ZIP contents are synced into the public root with `rsync --delete`, so upload a ZIP containing the files that should be served directly.
+
+For Git deployment, edit the site and fill:
+
+- `Repository`: `https://github.com/user/repo.git` for public repositories, or `git@github.com:user/repo.git` for SSH.
+- `Branch`: usually `main` or `master`.
+- `Deploy key path`: optional path under `/etc/server-panel/deploy-keys/`.
+
+Then run the row action `Deploy Git`.
+
+For a private repository, create a deploy key on the server:
+
+```bash
+sudo install -d -o root -g www-data -m 0750 /etc/server-panel/deploy-keys
+sudo install -o root -g www-data -m 0640 /path/to/private-key /etc/server-panel/deploy-keys/example.com
+```
+
+Add the matching public key to the Git host as a read-only deploy key.
+
 ## Verification
 
 ```bash

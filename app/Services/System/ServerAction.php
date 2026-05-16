@@ -93,6 +93,23 @@ final class ServerAction
         return $this->sudo('panel.system', $arguments, output: $output, timeout: 14400);
     }
 
+    public function uploadSiteArchive(string $archivePath, string $destinationPath, string $owner, ?Closure $output = null): ProcessResult
+    {
+        return $this->sudo('panel.system', ['site-upload', $archivePath, $destinationPath, $owner], output: $output, timeout: 14400);
+    }
+
+    public function deploySiteRepository(string $repository, string $branch, string $destinationPath, string $owner, ?string $deployKeyPath = null, ?Closure $output = null): ProcessResult
+    {
+        return $this->sudo('panel.system', [
+            'git-deploy',
+            $repository,
+            $branch,
+            $destinationPath,
+            $owner,
+            $deployKeyPath ?: '-',
+        ], output: $output, timeout: 14400);
+    }
+
     public function runWhitelisted(string $action, array $arguments = [], ?Closure $output = null): ProcessResult
     {
         return $this->sudo($action, $arguments, output: $output, timeout: (int) config('server-panel.process.timeout'));

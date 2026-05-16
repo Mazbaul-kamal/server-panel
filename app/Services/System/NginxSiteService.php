@@ -27,6 +27,7 @@ final class NginxSiteService
 
         try {
             $this->server->mkdir($documentRoot.'/public', 750);
+            $this->server->chown($documentRoot, $site->system_user ?: 'www-data');
             $this->server->writeNginxSite($siteName, $content);
             $this->server->enableNginxSite($siteName);
             $this->server->testNginx();

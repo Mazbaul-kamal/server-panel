@@ -135,9 +135,19 @@ final class CommandWhitelist
                 && in_array($arguments[3], ['tcp', 'udp'], true)
                 && preg_match('/^(any|[0-9a-fA-F:.\/]{3,64})$/', $arguments[4]),
             'backup-path' => count($arguments) === 4
-                && str_starts_with($arguments[1].'/', rtrim((string) config('server-panel.managed_root'), '/').'/')
-                && str_starts_with($arguments[2].'/', '/var/backups/server-panel/')
+                && $this->pathInside($arguments[1], (string) config('server-panel.managed_root'))
+                && $this->pathInside($arguments[2], '/var/backups/server-panel')
                 && preg_match('/^[0-9]{1,4}$/', $arguments[3]),
+            'site-upload' => count($arguments) === 4
+                && $this->pathInside($arguments[1], (string) config('filesystems.disks.local.root'))
+                && $this->pathInsideChild($arguments[2], (string) config('server-panel.managed_root'))
+                && preg_match('/^[a-z_][a-z0-9_-]{0,31}(:[a-z_][a-z0-9_-]{0,31})?$/', $arguments[3]),
+            'git-deploy' => count($arguments) === 6
+                && $this->gitRepository($arguments[1])
+                && $this->gitBranch($arguments[2])
+                && $this->pathInsideChild($arguments[3], (string) config('server-panel.managed_root'))
+                && preg_match('/^[a-z_][a-z0-9_-]{0,31}(:[a-z_][a-z0-9_-]{0,31})?$/', $arguments[4])
+                && ($arguments[5] === '-' || $this->pathInside($arguments[5], '/etc/server-panel/deploy-keys')),
             default => false,
         };
 
@@ -146,6 +156,41 @@ final class CommandWhitelist
         }
 
         return ['/usr/local/sbin/panel-system', ...$arguments];
+    }
+
+    private function pathInside(string $path, string $root): bool
+    {
+        $root = '/'.trim(preg_replace('#/+#', '/', $root), '/');
+        $path = '/'.ltrim(preg_replace('#/+#', '/', $path), '/');
+
+        return ! str_contains($path, "\0")
+            && ! preg_match('#(^|/)\.\.(/|$)#', $path)
+            && str_starts_with($path.'/', rtrim($root, '/').'/');
+    }
+
+    private function pathInsideChild(string $path, string $root): bool
+    {
+        $root = '/'.trim(preg_replace('#/+#', '/', $root), '/');
+        $path = '/'.ltrim(preg_replace('#/+#', '/', $path), '/');
+
+        return $path !== $root && $this->pathInside($path, $root);
+    }
+
+    private function gitRepository(string $repository): bool
+    {
+        return ! str_contains($repository, '..')
+            && (
+                (bool) preg_match('#^https://[A-Za-z0-9._:-]+/[A-Za-z0-9._/-]+(\.git)?$#', $repository)
+                || (bool) preg_match('#^git@[A-Za-z0-9._-]+:[A-Za-z0-9._/-]+(\.git)?$#', $repository)
+                || (bool) preg_match('#^ssh://git@[A-Za-z0-9._-]+/[A-Za-z0-9._/-]+(\.git)?$#', $repository)
+            );
+    }
+
+    private function gitBranch(string $branch): bool
+    {
+        return ! str_starts_with($branch, '-')
+            && ! str_contains($branch, '..')
+            && (bool) preg_match('#^[A-Za-z0-9._/-]{1,128}$#', $branch);
     }
 
     /**

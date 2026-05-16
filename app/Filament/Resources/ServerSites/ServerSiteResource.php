@@ -4,6 +4,8 @@ namespace App\Filament\Resources\ServerSites;
 
 use App\Filament\Resources\ServerSites\Pages\ManageServerSites;
 use App\Jobs\DeployNginxSite;
+use App\Jobs\DeploySiteArchive;
+use App\Jobs\DeploySiteRepository;
 use App\Models\ServerSite;
 use App\Models\Task;
 use BackedEnum;
@@ -13,6 +15,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -52,10 +55,33 @@ class ServerSiteResource extends Resource
                             ->required()
                             ->default(fn (): string => rtrim((string) config('server-panel.managed_root'), '/').'/example.com')
                             ->columnSpanFull(),
-                        TextInput::make('system_user')->regex('/^[a-z_][a-z0-9_-]{0,31}$/'),
+                        TextInput::make('system_user')
+                            ->default('www-data')
+                            ->regex('/^[a-z_][a-z0-9_-]{0,31}$/'),
                         TextInput::make('php_fpm_socket')
                             ->default(fn (): string => (string) config('server-panel.nginx.php_fpm_socket')),
                         Toggle::make('ssl_enabled')->label('SSL enabled'),
+                    ]),
+                Section::make('Git deployment')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('git_repository')
+                            ->label('Repository')
+                            ->nullable()
+                            ->placeholder('https://github.com/user/repo.git')
+                            ->notRegex('/\.\./')
+                            ->regex('#^(https://[A-Za-z0-9._:-]+/[A-Za-z0-9._/-]+(\.git)?|git@[A-Za-z0-9._-]+:[A-Za-z0-9._/-]+(\.git)?|ssh://git@[A-Za-z0-9._-]+/[A-Za-z0-9._/-]+(\.git)?)$#')
+                            ->columnSpanFull(),
+                        TextInput::make('git_branch')
+                            ->default('main')
+                            ->doesntStartWith('-')
+                            ->notRegex('/\.\./')
+                            ->regex('#^[A-Za-z0-9._/-]{1,128}$#'),
+                        TextInput::make('git_deploy_key_path')
+                            ->nullable()
+                            ->placeholder('/etc/server-panel/deploy-keys/example.com')
+                            ->notRegex('/\.\./')
+                            ->regex('#^/etc/server-panel/deploy-keys/[A-Za-z0-9._/-]+$#'),
                     ]),
             ]);
     }
@@ -67,8 +93,12 @@ class ServerSiteResource extends Resource
                 TextEntry::make('name'),
                 TextEntry::make('domain'),
                 TextEntry::make('document_root'),
+                TextEntry::make('git_repository')->placeholder('not connected')->columnSpanFull(),
+                TextEntry::make('git_branch')->placeholder('main'),
                 TextEntry::make('status')->badge(),
                 TextEntry::make('last_deployed_at')->dateTime()->placeholder('not deployed'),
+                TextEntry::make('last_git_deployed_at')->dateTime()->placeholder('not deployed'),
+                TextEntry::make('last_file_uploaded_at')->dateTime()->placeholder('not uploaded'),
             ]);
     }
 
@@ -80,9 +110,12 @@ class ServerSiteResource extends Resource
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('domain')->searchable(),
                 TextColumn::make('document_root')->wrap()->toggleable(),
+                TextColumn::make('git_repository')->label('Git')->wrap()->toggleable(),
                 TextColumn::make('status')->badge(),
                 IconColumn::make('ssl_enabled')->boolean(),
                 TextColumn::make('last_deployed_at')->dateTime()->sortable(),
+                TextColumn::make('last_git_deployed_at')->dateTime()->sortable()->toggleable(),
+                TextColumn::make('last_file_uploaded_at')->dateTime()->sortable()->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('status')->options([
@@ -108,6 +141,62 @@ class ServerSiteResource extends Resource
 
                         Notification::make()
                             ->title("Queued deploy task #{$task->id}")
+                            ->success()
+                            ->send();
+                    }),
+                Action::make('uploadArchive')
+                    ->label('Upload ZIP')
+                    ->icon(Heroicon::OutlinedCloudArrowUp)
+                    ->form([
+                        FileUpload::make('archive')
+                            ->label('Website ZIP')
+                            ->disk('local')
+                            ->directory(fn (ServerSite $record): string => "site-uploads/{$record->id}")
+                            ->acceptedFileTypes([
+                                'application/zip',
+                                'application/x-zip',
+                                'application/x-zip-compressed',
+                                'multipart/x-zip',
+                            ])
+                            ->maxSize(102400)
+                            ->required(),
+                    ])
+                    ->action(function (ServerSite $record, array $data): void {
+                        $archive = is_array($data['archive']) ? (string) reset($data['archive']) : (string) $data['archive'];
+
+                        $task = Task::create([
+                            'user_id' => auth()->id(),
+                            'label' => "Upload files for {$record->domain}",
+                            'action' => 'panel.system',
+                            'arguments' => ['site-upload', $archive, "{$record->document_root}/public"],
+                            'status' => 'pending',
+                        ]);
+
+                        DeploySiteArchive::dispatch($task->id, $record->id, $archive);
+
+                        Notification::make()
+                            ->title("Queued upload task #{$task->id}")
+                            ->success()
+                            ->send();
+                    }),
+                Action::make('deployGit')
+                    ->label('Deploy Git')
+                    ->icon(Heroicon::OutlinedCodeBracket)
+                    ->requiresConfirmation()
+                    ->disabled(fn (ServerSite $record): bool => blank($record->git_repository))
+                    ->action(function (ServerSite $record): void {
+                        $task = Task::create([
+                            'user_id' => auth()->id(),
+                            'label' => "Deploy Git for {$record->domain}",
+                            'action' => 'panel.system',
+                            'arguments' => ['git-deploy', $record->git_repository, $record->git_branch ?: 'main', "{$record->document_root}/public"],
+                            'status' => 'pending',
+                        ]);
+
+                        DeploySiteRepository::dispatch($task->id, $record->id);
+
+                        Notification::make()
+                            ->title("Queued Git deploy task #{$task->id}")
                             ->success()
                             ->send();
                     }),

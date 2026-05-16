@@ -3,6 +3,49 @@ set -euo pipefail
 
 command="${1:?missing command}"
 
+panel_root="/var/www/server-panel"
+managed_root="/var/www/vhosts"
+
+if [[ -r /etc/server-panel/root ]]; then
+  panel_root="$(head -n 1 /etc/server-panel/root)"
+fi
+
+if [[ -r /etc/server-panel/managed-root ]]; then
+  managed_root="$(head -n 1 /etc/server-panel/managed-root)"
+fi
+
+real_under() {
+  local path="$1"
+  local root="$2"
+  local path_real
+  local root_real
+
+  path_real="$(realpath -m "$path")"
+  root_real="$(realpath -m "$root")"
+
+  [[ "$path_real/" == "$root_real/"* ]]
+}
+
+require_managed_child() {
+  real_under "$1" "$managed_root" || exit 64
+  [[ "$(realpath -m "$1")" != "$(realpath -m "$managed_root")" ]] || exit 64
+}
+
+require_owner() {
+  [[ "$1" =~ ^[a-z_][a-z0-9_-]{0,31}(:[a-z_][a-z0-9_-]{0,31})?$ ]] || exit 64
+}
+
+require_git_repository() {
+  [[ "$1" != *".."* ]] || exit 64
+  [[ "$1" =~ ^https://[A-Za-z0-9._:-]+/[A-Za-z0-9._/-]+(\.git)?$ || "$1" =~ ^git@[A-Za-z0-9._-]+:[A-Za-z0-9._/-]+(\.git)?$ || "$1" =~ ^ssh://git@[A-Za-z0-9._-]+/[A-Za-z0-9._/-]+(\.git)?$ ]] || exit 64
+}
+
+require_git_branch() {
+  [[ "$1" != -* ]] || exit 64
+  [[ "$1" != *".."* ]] || exit 64
+  [[ "$1" =~ ^[A-Za-z0-9._/-]{1,128}$ ]] || exit 64
+}
+
 allowed_module_packages() {
   case "$1" in
     websites) echo "nginx" ;;
@@ -111,10 +154,9 @@ case "$command" in
     source_path="${2:?missing source}"
     destination_path="${3:?missing destination}"
     retention_days="${4:?missing retention}"
-    managed_root="/var/www/vhosts"
 
-    [[ "$source_path/" == "$managed_root/"* ]] || exit 64
-    [[ "$destination_path/" == /var/backups/server-panel/* ]] || exit 64
+    real_under "$source_path" "$managed_root" || exit 64
+    real_under "$destination_path" /var/backups/server-panel || exit 64
     [[ "$retention_days" =~ ^[0-9]{1,4}$ ]] || exit 64
 
     timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -123,6 +165,79 @@ case "$command" in
     /usr/bin/tar -czf "$archive" -C "$(dirname "$source_path")" "$(basename "$source_path")"
     /usr/bin/find "$destination_path" -type f -name 'backup-*.tar.gz' -mtime "+$retention_days" -delete
     echo "Created $archive"
+    ;;
+  site-upload)
+    archive_path="${2:?missing archive}"
+    destination_path="${3:?missing destination}"
+    owner="${4:?missing owner}"
+    owner_user="${owner%%:*}"
+    owner_group="www-data"
+    storage_root="$panel_root/storage/app/private"
+    archive_real="$(realpath "$archive_path")"
+    tmp_dir="$(mktemp -d)"
+
+    if [[ "$owner" == *:* ]]; then
+      owner_group="${owner#*:}"
+    fi
+
+    require_owner "$owner"
+    [[ -f "$archive_real" ]] || exit 64
+    real_under "$archive_real" "$storage_root" || exit 64
+    require_managed_child "$destination_path"
+
+    cleanup_upload() {
+      rm -rf "$tmp_dir"
+    }
+    trap cleanup_upload EXIT
+
+    /usr/bin/install -d -o "$owner_user" -g "$owner_group" -m 0750 "$destination_path"
+    /usr/bin/unzip -q "$archive_real" -d "$tmp_dir"
+    /usr/bin/rsync -a --delete "$tmp_dir"/ "$destination_path"/
+    /usr/bin/chown -R "$owner_user":"$owner_group" "$destination_path"
+    /usr/bin/find "$destination_path" -type d -exec chmod 0750 {} +
+    /usr/bin/find "$destination_path" -type f -exec chmod 0640 {} +
+    echo "Uploaded archive to $destination_path"
+    ;;
+  git-deploy)
+    repository="${2:?missing repository}"
+    branch="${3:?missing branch}"
+    destination_path="${4:?missing destination}"
+    owner="${5:?missing owner}"
+    deploy_key="${6:?missing deploy key}"
+    owner_user="${owner%%:*}"
+    owner_group="www-data"
+
+    require_git_repository "$repository"
+    require_git_branch "$branch"
+    require_owner "$owner"
+    require_managed_child "$destination_path"
+
+    if [[ "$owner" == *:* ]]; then
+      owner_group="${owner#*:}"
+    fi
+
+    if [[ "$deploy_key" != "-" ]]; then
+      key_real="$(realpath "$deploy_key")"
+      [[ -f "$key_real" ]] || exit 64
+      real_under "$key_real" /etc/server-panel/deploy-keys || exit 64
+      export GIT_SSH_COMMAND="ssh -i $key_real -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+    fi
+
+    /usr/bin/install -d -o "$owner_user" -g "$owner_group" -m 0750 "$destination_path"
+
+    if [[ -d "$destination_path/.git" ]]; then
+      /usr/bin/git -C "$destination_path" fetch --prune origin "$branch"
+      /usr/bin/git -C "$destination_path" checkout -B "$branch" FETCH_HEAD
+      /usr/bin/git -C "$destination_path" reset --hard FETCH_HEAD
+    else
+      rm -rf "$destination_path"
+      /usr/bin/git clone --depth 1 --branch "$branch" "$repository" "$destination_path"
+    fi
+
+    /usr/bin/chown -R "$owner_user":"$owner_group" "$destination_path"
+    /usr/bin/find "$destination_path" -type d -exec chmod 0750 {} +
+    /usr/bin/find "$destination_path" -type f -exec chmod 0640 {} +
+    echo "Deployed $repository#$branch to $destination_path"
     ;;
   *)
     exit 64

@@ -63,4 +63,64 @@ class CommandWhitelistTest extends TestCase
 
         app(CommandWhitelist::class)->sudoCommand('panel.system', ['backup-path', '/etc', '/var/backups/server-panel/etc', '14']);
     }
+
+    public function test_panel_system_allows_site_upload_from_private_storage(): void
+    {
+        $source = storage_path('app/private/site-uploads/site.zip');
+        $destination = rtrim((string) config('server-panel.managed_root'), '/').'/example.com/public';
+
+        $command = app(CommandWhitelist::class)->sudoCommand('panel.system', ['site-upload', $source, $destination, 'www-data']);
+
+        $this->assertSame(['/usr/local/sbin/panel-system', 'site-upload', $source, $destination, 'www-data'], $command);
+    }
+
+    public function test_panel_system_rejects_site_upload_to_managed_root_itself(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        app(CommandWhitelist::class)->sudoCommand('panel.system', [
+            'site-upload',
+            storage_path('app/private/site-uploads/site.zip'),
+            rtrim((string) config('server-panel.managed_root'), '/'),
+            'www-data',
+        ]);
+    }
+
+    public function test_panel_system_allows_https_git_deploy(): void
+    {
+        $destination = rtrim((string) config('server-panel.managed_root'), '/').'/example.com/public';
+
+        $command = app(CommandWhitelist::class)->sudoCommand('panel.system', [
+            'git-deploy',
+            'https://github.com/example/site.git',
+            'main',
+            $destination,
+            'www-data',
+            '-',
+        ]);
+
+        $this->assertSame([
+            '/usr/local/sbin/panel-system',
+            'git-deploy',
+            'https://github.com/example/site.git',
+            'main',
+            $destination,
+            'www-data',
+            '-',
+        ], $command);
+    }
+
+    public function test_panel_system_rejects_git_deploy_with_unsafe_branch(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        app(CommandWhitelist::class)->sudoCommand('panel.system', [
+            'git-deploy',
+            'https://github.com/example/site.git',
+            '../main',
+            rtrim((string) config('server-panel.managed_root'), '/').'/example.com/public',
+            'www-data',
+            '-',
+        ]);
+    }
 }

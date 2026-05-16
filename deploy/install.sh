@@ -298,7 +298,12 @@ install_privileged_helpers() {
   install -o root -g root -m 0750 "$INSTALL_DIR/deploy/bin/panel-system" /usr/local/sbin/panel-system
   install -o root -g root -m 0440 "$INSTALL_DIR/deploy/sudoers/server-panel" /etc/sudoers.d/server-panel
   visudo -cf /etc/sudoers.d/server-panel
+  install -d -o root -g www-data -m 0750 /etc/server-panel /etc/server-panel/deploy-keys
+  printf '%s\n' "$INSTALL_DIR" > /etc/server-panel/root
+  printf '%s\n' "/var/www/vhosts" > /etc/server-panel/managed-root
+  chmod 0644 /etc/server-panel/root /etc/server-panel/managed-root
   install -d -o www-data -g www-data -m 0750 /var/www/vhosts
+  install -d -o root -g root -m 0750 /var/backups/server-panel
 }
 
 write_nginx_config() {
@@ -410,6 +415,7 @@ run_laravel_setup() {
 fix_permissions() {
   log "Fixing permissions"
   mkdir -p \
+    "$INSTALL_DIR/storage/app/private" \
     "$INSTALL_DIR/storage/app/public" \
     "$INSTALL_DIR/storage/framework/cache/data" \
     "$INSTALL_DIR/storage/framework/sessions" \
