@@ -27,7 +27,9 @@ class MailAccountResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedEnvelope;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Hosting';
+    protected static string|\UnitEnum|null $navigationGroup = 'Messaging';
+
+    protected static ?int $navigationSort = 20;
 
     public static function form(Schema $schema): Schema
     {

@@ -23,7 +23,9 @@ class BackupRunResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCloudArrowDown;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Hosting';
+    protected static string|\UnitEnum|null $navigationGroup = 'Backups';
+
+    protected static ?int $navigationSort = 20;
 
     public static function form(Schema $schema): Schema
     {

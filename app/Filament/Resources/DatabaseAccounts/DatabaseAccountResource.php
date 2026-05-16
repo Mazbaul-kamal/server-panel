@@ -32,6 +32,10 @@ class DatabaseAccountResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCircleStack;
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Data & DNS';
+
+    protected static ?int $navigationSort = 10;
+
     public static function form(Schema $schema): Schema
     {
         return $schema

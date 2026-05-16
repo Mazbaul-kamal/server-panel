@@ -27,7 +27,9 @@ class AccessLevelResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedKey;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Hosting';
+    protected static string|\UnitEnum|null $navigationGroup = 'Security';
+
+    protected static ?int $navigationSort = 20;
 
     public static function form(Schema $schema): Schema
     {

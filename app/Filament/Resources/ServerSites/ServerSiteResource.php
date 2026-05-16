@@ -36,6 +36,10 @@ class ServerSiteResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedGlobeAlt;
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Web Hosting';
+
+    protected static ?int $navigationSort = 10;
+
     public static function form(Schema $schema): Schema
     {
         return $schema

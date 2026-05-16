@@ -1,0 +1,178 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+:root {
+    --server-panel-surface: #101112;
+    --server-panel-surface-soft: #17191b;
+    --server-panel-line: rgba(212, 212, 216, 0.12);
+    --server-panel-muted: #a1a1aa;
+    --server-panel-cyan: #22d3ee;
+    --server-panel-emerald: #34d399;
+    --server-panel-amber: #f59e0b;
+    --server-panel-rose: #fb7185;
+}
+
+.fi-body {
+    background:
+        radial-gradient(circle at top left, rgba(34, 211, 238, 0.08), transparent 28rem),
+        linear-gradient(180deg, #0b0c0d 0%, #111315 46%, #0d0f10 100%);
+}
+
+.fi-sidebar {
+    border-inline-end: 1px solid var(--server-panel-line);
+    background: rgba(12, 13, 14, 0.96);
+    backdrop-filter: blur(16px);
+}
+
+.fi-topbar {
+    border-bottom: 1px solid var(--server-panel-line);
+    background: rgba(13, 15, 16, 0.82);
+    backdrop-filter: blur(18px);
+}
+
+.fi-main {
+    width: 100%;
+}
+
+.fi-section,
+.fi-ta,
+.fi-wi-widget,
+.fi-fo-component-ctn,
+.fi-modal-window {
+    border: 1px solid var(--server-panel-line);
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(24, 26, 28, 0.94), rgba(16, 17, 18, 0.94));
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+}
+
+.fi-btn,
+.fi-input-wrp,
+.fi-select-input,
+.fi-ta-filter-indicator,
+.fi-badge {
+    border-radius: 8px;
+}
+
+.fi-sidebar-item-button {
+    border-radius: 8px;
+}
+
+.fi-sidebar-item-active > .fi-sidebar-item-button {
+    border: 1px solid rgba(34, 211, 238, 0.22);
+    background: rgba(34, 211, 238, 0.10);
+}
+
+.fi-ta-header,
+.fi-section-header {
+    border-bottom-color: var(--server-panel-line);
+}
+
+.enterprise-command-center {
+    display: grid;
+    gap: 1rem;
+    border: 1px solid var(--server-panel-line);
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, rgba(34, 211, 238, 0.12), transparent 34%),
+        linear-gradient(180deg, rgba(24, 26, 28, 0.98), rgba(14, 15, 16, 0.98));
+    padding: 1rem;
+}
+
+.enterprise-command-center__hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.enterprise-command-center__eyebrow,
+.enterprise-command-center__metric span,
+.enterprise-command-center__metric small,
+.enterprise-command-center__score small,
+.enterprise-command-center__incident span {
+    color: var(--server-panel-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.enterprise-command-center__title {
+    color: #fafafa;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.enterprise-command-center__score {
+    display: grid;
+    min-width: 5.5rem;
+    place-items: center;
+    border: 1px solid rgba(52, 211, 153, 0.28);
+    border-radius: 8px;
+    background: rgba(52, 211, 153, 0.10);
+    padding: 0.75rem;
+}
+
+.enterprise-command-center__score span {
+    color: var(--server-panel-emerald);
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.enterprise-command-center__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 0.75rem;
+}
+
+.enterprise-command-center__metric {
+    display: grid;
+    min-height: 7rem;
+    align-content: space-between;
+    border: 1px solid var(--server-panel-line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+    padding: 0.9rem;
+}
+
+.enterprise-command-center__metric--large {
+    background: rgba(34, 211, 238, 0.08);
+}
+
+.enterprise-command-center__metric strong {
+    color: #f4f4f5;
+    font-size: 1.65rem;
+    font-weight: 800;
+}
+
+.enterprise-command-center__incidents {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 0.75rem;
+}
+
+.enterprise-command-center__incident {
+    display: grid;
+    gap: 0.25rem;
+    border: 1px solid var(--server-panel-line);
+    border-radius: 8px;
+    padding: 0.85rem;
+}
+
+.enterprise-command-center__incident strong {
+    color: #fafafa;
+    font-size: 0.9rem;
+}
+
+.enterprise-command-center__incident--success {
+    border-color: rgba(52, 211, 153, 0.24);
+}
+
+.enterprise-command-center__incident--warning {
+    border-color: rgba(245, 158, 11, 0.30);
+}
+
+.enterprise-command-center__incident--danger {
+    border-color: rgba(251, 113, 133, 0.34);
+}

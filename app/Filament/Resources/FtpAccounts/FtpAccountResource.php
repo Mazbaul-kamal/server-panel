@@ -24,7 +24,9 @@ class FtpAccountResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFolderOpen;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Files';
+    protected static string|\UnitEnum|null $navigationGroup = 'Web Hosting';
+
+    protected static ?int $navigationSort = 20;
 
     public static function form(Schema $schema): Schema
     {
