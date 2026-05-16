@@ -85,6 +85,14 @@ final class ServerAction
         return $this->sudo('logs.rotate', ['/etc/logrotate.conf'], output: $output, timeout: 1800);
     }
 
+    /**
+     * @param  array<int, string>  $arguments
+     */
+    public function panelSystem(array $arguments, ?Closure $output = null): ProcessResult
+    {
+        return $this->sudo('panel.system', $arguments, output: $output, timeout: 14400);
+    }
+
     public function runWhitelisted(string $action, array $arguments = [], ?Closure $output = null): ProcessResult
     {
         return $this->sudo($action, $arguments, output: $output, timeout: (int) config('server-panel.process.timeout'));

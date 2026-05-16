@@ -21,6 +21,7 @@ final class CommandWhitelist
             'certbot.renew' => $this->exact('/usr/bin/certbot', ['renew', '--quiet'], $arguments),
             'backup.sites' => $this->exact('/usr/local/sbin/panel-backup-sites', [], $arguments),
             'logs.rotate' => $this->exact('/usr/sbin/logrotate', ['/etc/logrotate.conf'], $arguments),
+            'panel.system' => $this->panelSystem($arguments),
             default => throw new InvalidArgumentException('Command is not whitelisted.'),
         };
     }
@@ -103,6 +104,48 @@ final class CommandWhitelist
         }
 
         return [$helper, ...$arguments];
+    }
+
+    /**
+     * @param  array<int, string>  $arguments
+     * @return array<int, string>
+     */
+    private function panelSystem(array $arguments): array
+    {
+        $command = $arguments[0] ?? null;
+
+        $valid = match ($command) {
+            'install-module' => count($arguments) === 2
+                && preg_match('/^[a-z0-9][a-z0-9-]{0,63}$/', $arguments[1])
+                && array_key_exists($arguments[1], (array) config('hosting-modules.modules', [])),
+            'service' => count($arguments) === 3
+                && in_array($arguments[1], ['start', 'stop', 'restart', 'reload', 'enable', 'disable', 'status'], true)
+                && preg_match('/^[a-zA-Z0-9@_.-]{1,96}$/', $arguments[2])
+                && (
+                    array_key_exists($arguments[2], (array) config('hosting-modules.service_units', []))
+                    || $arguments[2] === 'certbot.timer'
+                    || preg_match('/^php[0-9]+(\.[0-9]+)?-fpm$/', $arguments[2])
+                    || $arguments[2] === 'php-fpm'
+                ),
+            'firewall' => count($arguments) === 5
+                && in_array($arguments[1], ['allow', 'deny', 'delete-allow', 'delete-deny'], true)
+                && preg_match('/^[0-9]{1,5}$/', $arguments[2])
+                && (int) $arguments[2] >= 1
+                && (int) $arguments[2] <= 65535
+                && in_array($arguments[3], ['tcp', 'udp'], true)
+                && preg_match('/^(any|[0-9a-fA-F:.\/]{3,64})$/', $arguments[4]),
+            'backup-path' => count($arguments) === 4
+                && str_starts_with($arguments[1].'/', rtrim((string) config('server-panel.managed_root'), '/').'/')
+                && str_starts_with($arguments[2].'/', '/var/backups/server-panel/')
+                && preg_match('/^[0-9]{1,4}$/', $arguments[3]),
+            default => false,
+        };
+
+        if (! $valid) {
+            throw new InvalidArgumentException('Invalid panel system invocation.');
+        }
+
+        return ['/usr/local/sbin/panel-system', ...$arguments];
     }
 
     /**

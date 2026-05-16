@@ -8,4 +8,5 @@ www-data ALL=(root) NOPASSWD: /usr/bin/chown
 www-data ALL=(root) NOPASSWD: /usr/bin/apt-get update
 www-data ALL=(root) NOPASSWD: /usr/bin/certbot renew --quiet
 www-data ALL=(root) NOPASSWD: /usr/local/sbin/panel-backup-sites
+www-data ALL=(root) NOPASSWD: /usr/local/sbin/panel-system
 www-data ALL=(root) NOPASSWD: /usr/sbin/logrotate /etc/logrotate.conf

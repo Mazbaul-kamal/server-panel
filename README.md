@@ -10,6 +10,7 @@ Laravel 12 self-hosted server management panel for the same Linux server it mana
 - Whitelisted `sudo -n` process execution through `ServerAction`
 - Nginx virtual host deployment through a root-owned helper script
 - MariaDB/MySQL database and user provisioning
+- CyberPanel-style module catalog for websites, DNS, databases, FTP, mail, webmail, file manager, PHP, firewall, backups/S3, Docker, monitoring, bandwidth, server tuning, plugins, and web-terminal foundations
 - Deployment examples for sudoers, Supervisor, Nginx Reverb proxying, and backup helper scripts
 
 ## Local Setup
@@ -76,7 +77,8 @@ The installer will:
 - install Nginx, MariaDB, Redis, Supervisor, PHP-FPM, Composer dependencies, and frontend assets;
 - create the application database/user and a database bridge user for provisioning site databases;
 - write `.env`, run migrations, create the Filament admin user, and cache Laravel config;
-- install `/usr/local/sbin/panel-nginx-site`, `/usr/local/sbin/panel-backup-sites`, and `/etc/sudoers.d/server-panel`;
+- sync the hosting module/service catalog with `php artisan panel:sync-catalog`;
+- install `/usr/local/sbin/panel-nginx-site`, `/usr/local/sbin/panel-backup-sites`, `/usr/local/sbin/panel-system`, and `/etc/sudoers.d/server-panel`;
 - configure Nginx for the panel and Reverb WebSockets;
 - configure Supervisor for Horizon and Reverb.
 
@@ -89,6 +91,7 @@ Install privileged helpers:
 ```bash
 sudo install -o root -g root -m 0750 deploy/bin/panel-nginx-site /usr/local/sbin/panel-nginx-site
 sudo install -o root -g root -m 0750 deploy/bin/panel-backup-sites /usr/local/sbin/panel-backup-sites
+sudo install -o root -g root -m 0750 deploy/bin/panel-system /usr/local/sbin/panel-system
 sudo install -o root -g root -m 0440 deploy/sudoers/server-panel /etc/sudoers.d/server-panel
 sudo visudo -cf /etc/sudoers.d/server-panel
 ```
@@ -115,4 +118,4 @@ php artisan route:list --except-vendor
 
 Controllers and Filament actions never accept raw shell commands. They create `Task` records and dispatch queued jobs. Jobs call `ServerAction`, which uses array-based commands and a `CommandWhitelist` that rejects unapproved actions or argument shapes before `sudo` is invoked.
 
-The sudoers file intentionally grants only specific binaries and exact argument forms where possible. Nginx writes and symlink operations go through `/usr/local/sbin/panel-nginx-site`; this avoids giving `www-data` generic access to shell, `tee`, or arbitrary filesystem commands.
+The sudoers file intentionally grants only specific binaries and exact argument forms where possible. Nginx writes and symlink operations go through `/usr/local/sbin/panel-nginx-site`; module install, service control, firewall, and backup path operations go through `/usr/local/sbin/panel-system`. This avoids giving `www-data` generic access to shell, `tee`, package managers, or arbitrary filesystem commands.

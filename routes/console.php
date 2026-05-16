@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Services\Hosting\HostingCatalog;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
@@ -29,3 +30,11 @@ Artisan::command('panel:admin {email} {--name=} {--password=}', function (string
 
     return 0;
 })->purpose('Create or update an administrator who can access the Filament panel.');
+
+Artisan::command('panel:sync-catalog', function (HostingCatalog $catalog): int {
+    $catalog->sync();
+
+    $this->info('Hosting module catalog synced.');
+
+    return 0;
+})->purpose('Sync CyberPanel-style module and service catalog records.');

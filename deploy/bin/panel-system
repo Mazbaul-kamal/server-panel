@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+command="${1:?missing command}"
+
+allowed_module_packages() {
+  case "$1" in
+    websites) echo "nginx" ;;
+    ssl) echo "certbot python3-certbot-nginx" ;;
+    dns) echo "pdns-server pdns-backend-mysql" ;;
+    databases) echo "mariadb-server phpmyadmin" ;;
+    ftp) echo "pure-ftpd" ;;
+    mail) echo "postfix dovecot-imapd dovecot-pop3d opendkim opendkim-tools rspamd" ;;
+    webmail) echo "unzip" ;;
+    email-delivery) echo "opendkim opendkim-tools rspamd" ;;
+    email-marketing) echo "" ;;
+    file-manager) echo "zip unzip acl" ;;
+    php) echo "php-cli php-fpm php-mysql php-xml php-mbstring php-curl php-zip php-bcmath php-gd php-intl" ;;
+    firewall) echo "ufw" ;;
+    backups) echo "rsync tar gzip restic borgbackup" ;;
+    docker) echo "docker.io docker-compose-plugin" ;;
+    packages) echo "" ;;
+    plugins) echo "" ;;
+    web-terminal) echo "" ;;
+    tuning) echo "sysstat" ;;
+    high-availability) echo "rsync" ;;
+    monitoring) echo "sysstat htop iotop" ;;
+    ai-scanner) echo "clamav clamav-daemon" ;;
+    bandwidth) echo "vnstat" ;;
+    s3-backups) echo "restic rclone" ;;
+    acl) echo "" ;;
+    *) exit 64 ;;
+  esac
+}
+
+require_service() {
+  [[ "$1" =~ ^[a-zA-Z0-9@_.-]{1,96}$ ]] || exit 64
+
+  case "$1" in
+    nginx|mariadb|redis-server|supervisor|pdns|pure-ftpd|postfix|dovecot|opendkim|rspamd|docker|ufw|vnstat|sysstat|clamav-daemon|certbot.timer|php*-fpm|php-fpm) ;;
+    *) exit 64 ;;
+  esac
+}
+
+case "$command" in
+  install-module)
+    module="${2:?missing module}"
+    [[ "$module" =~ ^[a-z0-9][a-z0-9-]{0,63}$ ]] || exit 64
+    packages="$(allowed_module_packages "$module")"
+
+    if [[ -n "$packages" ]]; then
+      /usr/bin/apt-get update
+      /usr/bin/apt-get install -y $packages
+    fi
+
+    echo "Installed module packages for $module"
+    ;;
+  service)
+    action="${2:?missing action}"
+    unit="${3:?missing unit}"
+    require_service "$unit"
+
+    case "$action" in
+      start|stop|restart|reload|enable|disable|status)
+        /usr/bin/systemctl "$action" "$unit"
+        ;;
+      *)
+        exit 64
+        ;;
+    esac
+    ;;
+  firewall)
+    action="${2:?missing action}"
+    port="${3:?missing port}"
+    protocol="${4:?missing protocol}"
+    source="${5:?missing source}"
+
+    [[ "$port" =~ ^[0-9]{1,5}$ ]] && [[ "$port" -ge 1 ]] && [[ "$port" -le 65535 ]] || exit 64
+    [[ "$protocol" =~ ^(tcp|udp)$ ]] || exit 64
+    [[ "$source" =~ ^(any|[0-9a-fA-F:.\/]{3,64})$ ]] || exit 64
+
+    /usr/sbin/ufw --force enable
+
+    case "$action" in
+      allow)
+        if [[ "$source" == "any" ]]; then
+          /usr/sbin/ufw allow "${port}/${protocol}"
+        else
+          /usr/sbin/ufw allow from "$source" to any port "$port" proto "$protocol"
+        fi
+        ;;
+      deny)
+        if [[ "$source" == "any" ]]; then
+          /usr/sbin/ufw deny "${port}/${protocol}"
+        else
+          /usr/sbin/ufw deny from "$source" to any port "$port" proto "$protocol"
+        fi
+        ;;
+      delete-allow)
+        /usr/sbin/ufw --force delete allow "${port}/${protocol}" || true
+        ;;
+      delete-deny)
+        /usr/sbin/ufw --force delete deny "${port}/${protocol}" || true
+        ;;
+      *)
+        exit 64
+        ;;
+    esac
+    ;;
+  backup-path)
+    source_path="${2:?missing source}"
+    destination_path="${3:?missing destination}"
+    retention_days="${4:?missing retention}"
+    managed_root="/var/www/vhosts"
+
+    [[ "$source_path/" == "$managed_root/"* ]] || exit 64
+    [[ "$destination_path/" == /var/backups/server-panel/* ]] || exit 64
+    [[ "$retention_days" =~ ^[0-9]{1,4}$ ]] || exit 64
+
+    timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+    /usr/bin/install -d -o root -g root -m 0750 "$destination_path"
+    archive="$destination_path/backup-$timestamp.tar.gz"
+    /usr/bin/tar -czf "$archive" -C "$(dirname "$source_path")" "$(basename "$source_path")"
+    /usr/bin/find "$destination_path" -type f -name 'backup-*.tar.gz' -mtime "+$retention_days" -delete
+    echo "Created $archive"
+    ;;
+  *)
+    exit 64
+    ;;
+esac

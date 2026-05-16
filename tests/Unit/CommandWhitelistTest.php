@@ -28,4 +28,39 @@ class CommandWhitelistTest extends TestCase
 
         app(CommandWhitelist::class)->sudoCommand('nginx.site', ['enable', 'site;rm']);
     }
+
+    public function test_panel_system_allows_known_module_install_shape(): void
+    {
+        $command = app(CommandWhitelist::class)->sudoCommand('panel.system', ['install-module', 'dns']);
+
+        $this->assertSame(['/usr/local/sbin/panel-system', 'install-module', 'dns'], $command);
+    }
+
+    public function test_panel_system_rejects_injected_service_units(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        app(CommandWhitelist::class)->sudoCommand('panel.system', ['service', 'restart', 'nginx;rm']);
+    }
+
+    public function test_panel_system_rejects_unknown_module_installs(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        app(CommandWhitelist::class)->sudoCommand('panel.system', ['install-module', 'unknown-module']);
+    }
+
+    public function test_panel_system_rejects_firewall_ports_outside_valid_range(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        app(CommandWhitelist::class)->sudoCommand('panel.system', ['firewall', 'allow', '70000', 'tcp', 'any']);
+    }
+
+    public function test_panel_system_rejects_backups_outside_managed_root(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        app(CommandWhitelist::class)->sudoCommand('panel.system', ['backup-path', '/etc', '/var/backups/server-panel/etc', '14']);
+    }
 }

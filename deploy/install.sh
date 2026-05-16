@@ -295,6 +295,7 @@ install_privileged_helpers() {
   log "Installing privileged helper scripts and sudoers"
   install -o root -g root -m 0750 "$INSTALL_DIR/deploy/bin/panel-nginx-site" /usr/local/sbin/panel-nginx-site
   install -o root -g root -m 0750 "$INSTALL_DIR/deploy/bin/panel-backup-sites" /usr/local/sbin/panel-backup-sites
+  install -o root -g root -m 0750 "$INSTALL_DIR/deploy/bin/panel-system" /usr/local/sbin/panel-system
   install -o root -g root -m 0440 "$INSTALL_DIR/deploy/sudoers/server-panel" /etc/sudoers.d/server-panel
   visudo -cf /etc/sudoers.d/server-panel
   install -d -o www-data -g www-data -m 0750 /var/www/vhosts
@@ -400,6 +401,7 @@ run_laravel_setup() {
   cd "$INSTALL_DIR"
   php artisan key:generate --force
   php artisan migrate --force
+  php artisan panel:sync-catalog
   php artisan storage:link || true
   php artisan panel:admin "$ADMIN_EMAIL" --password="$ADMIN_PASSWORD"
   php artisan optimize
@@ -421,7 +423,7 @@ fix_permissions() {
   find "$INSTALL_DIR" -type f -exec chmod 0644 {} +
   chmod 0755 "$INSTALL_DIR/artisan"
   chmod 0640 "$INSTALL_DIR/.env"
-  chmod 0755 "$INSTALL_DIR/deploy/bin/panel-nginx-site" "$INSTALL_DIR/deploy/bin/panel-backup-sites"
+  chmod 0755 "$INSTALL_DIR/deploy/bin/panel-nginx-site" "$INSTALL_DIR/deploy/bin/panel-backup-sites" "$INSTALL_DIR/deploy/bin/panel-system"
   chown -R www-data:www-data "$INSTALL_DIR/storage" "$INSTALL_DIR/bootstrap/cache"
 }
 
